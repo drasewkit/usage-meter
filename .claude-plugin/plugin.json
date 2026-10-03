@@ -1,7 +1,7 @@
 {
   "name": "usage-meter",
   "displayName": "Usage Meter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Show the 5-hour and weekly usage windows and the current effort under the prompt",
   "author": {
     "name": "drasewkit",
@@ -9,6 +9,9 @@
   },
   "homepage": "https://github.com/drasewkit/usage-meter",
   "repository": "https://github.com/drasewkit/usage-meter",
+  "documentationUrl": "https://github.com/drasewkit/usage-meter#readme",
+  "supportUrl": "https://github.com/drasewkit/usage-meter/issues",
+  "privacyPolicyUrl": "https://github.com/drasewkit/usage-meter#privacy",
   "license": "MIT",
   "keywords": [
     "status-line",
