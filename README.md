@@ -51,7 +51,16 @@ Turn it on from `/config` (the **日本語で表示 (Japanese)** row). The Japan
 
 ## Privacy
 
-Usage Meter sends nothing anywhere and makes no network requests. It reads only what Claude Code already has in the running session: the rate-limit figures, the model name, the effort of each request and your settings' effort levels. Nothing is written to disk.
+Usage Meter sends nothing anywhere and makes no network requests. It starts no processes and writes nothing to disk.
+
+It reads only what Claude Code already has in the running session:
+
+- the rate-limit figures (share used and reset time of the 5-hour and weekly windows);
+- the session's model name;
+- the effort of each main-conversation request;
+- your settings, to show the effort before the first request and after `/effort` or `/model`. Claude Code hands a plugin the settings whole; Usage Meter uses only `effortLevel` and `modelSettings.<model>.effortLevel` from them and keeps nothing else.
+
+These values live in the session's memory while it runs and are gone when it ends. No personal data (names, email addresses, conversation content) is read or kept.
 
 ## Development
 
