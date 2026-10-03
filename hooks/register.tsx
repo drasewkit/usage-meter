@@ -151,7 +151,7 @@ const syncSettings = async ($: EngineInterface) => {
 const redraw = ($: EngineInterface) => $.ui.invalidate('ui.render')
 
 export const register: Register = (on, options) => {
-  language = options.language === 'ja' ? 'ja' : 'en'
+  language = options.japanese === true ? 'ja' : 'en'
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)

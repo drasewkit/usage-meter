@@ -29,15 +29,25 @@ Start a new session and the line appears under the prompt.
 
 ## Settings
 
-| Option | Values | Default |
+| Option | Type | Default |
 | --- | --- | --- |
-| `language` | `en`, `ja` | `en` |
+| `japanese` (日本語で表示) | on / off | off (English) |
 
-Change it from `/config` (the **Display language** row). The Japanese display looks like this:
+Turn it on from `/config` (the **日本語で表示 (Japanese)** row). The Japanese display looks like this:
 
 ```
 5h枠 残り2h14m · 63%使用 · 13:14リセット | 週 41%使用 · 10/8(木) 09:00リセット | effort medium
 ```
+
+## What it hooks
+
+| Hook | Why |
+| --- | --- |
+| `session.start` | Reads the usage windows, the model and your settings' effort once the session starts, then redraws every 30 seconds. |
+| `session.measure` | Picks up new usage figures as Claude Code receives them. |
+| `turn.step` | Reads the effort of each main-conversation request. It passes every request on unchanged. |
+| `command.run` | After `/effort` or `/model` finishes, re-reads the settings so a new effort shows at once. It passes every command on unchanged and changes nothing in its output. |
+| `ui.render` (`PromptHint`) | Draws the meter line under Claude Code's own hint line, which it keeps as drawn. |
 
 ## Privacy
 

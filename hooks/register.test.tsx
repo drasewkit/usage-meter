@@ -153,7 +153,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
   })
 }
 
-test('ja: draws the meter in Japanese', { options: { language: 'ja' } }, async ($, on) => {
+test('ja: draws the meter in Japanese', { options: { japanese: true } }, async ($, on) => {
   mock.clock(on, { now: START })
   on('session.measure', ($, e) => ({ changed: e.changed }))
   on('ui.render', { component: 'PromptHint' }, ($, e) => {
