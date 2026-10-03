@@ -1,0 +1,15 @@
+{
+  "name": "drasewkit",
+  "description": "Claude Code plugins by drasewkit",
+  "owner": {
+    "name": "drasewkit",
+    "url": "https://github.com/drasewkit"
+  },
+  "plugins": [
+    {
+      "name": "usage-meter",
+      "source": "./",
+      "description": "Show the 5-hour and weekly usage windows and the current effort under the prompt"
+    }
+  ]
+}

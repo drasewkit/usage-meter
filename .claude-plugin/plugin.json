@@ -1,0 +1,23 @@
+{
+  "name": "usage-meter",
+  "displayName": "Usage Meter",
+  "version": "1.0.0",
+  "description": "Show the 5-hour and weekly usage windows and the current effort under the prompt",
+  "author": {
+    "name": "drasewkit",
+    "url": "https://github.com/drasewkit"
+  },
+  "homepage": "https://github.com/drasewkit/usage-meter",
+  "repository": "https://github.com/drasewkit/usage-meter",
+  "license": "MIT",
+  "keywords": ["status-line", "usage", "rate-limit", "effort"],
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Display language",
+      "description": "Language of the meter line: en (English) or ja (日本語)",
+      "default": "en",
+      "options": ["en", "ja"]
+    }
+  }
+}
