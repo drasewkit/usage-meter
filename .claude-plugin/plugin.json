@@ -1,8 +1,8 @@
 {
   "name": "usage-meter",
   "displayName": "Usage Meter",
-  "version": "1.0.2",
-  "description": "Show the 5-hour and weekly usage windows and the current effort under the prompt",
+  "version": "1.1.0",
+  "description": "Show the 5-hour and weekly usage windows and the current model and effort under the prompt",
   "author": {
     "name": "drasewkit",
     "url": "https://github.com/drasewkit"

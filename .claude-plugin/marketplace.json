@@ -9,7 +9,7 @@
     {
       "name": "usage-meter",
       "source": "./",
-      "description": "Show the 5-hour and weekly usage windows and the current effort under the prompt"
+      "description": "Show the 5-hour and weekly usage windows and the current model and effort under the prompt"
     }
   ]
 }

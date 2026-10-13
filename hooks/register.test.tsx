@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'claude-code/testing'
-import { format, parts, settingsEffort } from './register.js'
+import { format, modelName, parts, settingsEffort } from './register.js'
 
 const START = Date.parse('2026-10-03T02:00:00Z')
 const RESETS = '2026-10-03T04:14:00Z'
@@ -30,29 +30,30 @@ const weekEn = (percent: number) =>
 
 const fiveHour = { percentUsed: 63.4, resetsAt: RESETS }
 const sevenDay = { percentUsed: 40.6, resetsAt: WEEK_RESETS }
+const opus = 'claude-opus-5-5'
 
-test('formats both windows and the effort in English', () => {
-  expect(format(parts({ fiveHour, sevenDay }, 'medium', START, 'en'))).toBe(
-    `5h: 2h14m left · 63% used · resets ${localClock(RESETS)} | ${weekEn(41)} | Effort: medium`,
+test('formats both windows, the model and the effort in English', () => {
+  expect(format(parts({ fiveHour, sevenDay }, { model: opus, effort: 'medium' }, START, 'en'))).toBe(
+    `5h: 2h14m left · 63% used · resets ${localClock(RESETS)} | ${weekEn(41)} | Opus 5.5 medium`,
   )
-  expect(format(parts({ fiveHour, sevenDay }, undefined, Date.parse(RESETS) + 1, 'en'))).toBe(
+  expect(format(parts({ fiveHour, sevenDay }, {}, Date.parse(RESETS) + 1, 'en'))).toBe(
     `5h: reset (updates on next reply) | ${weekEn(41)}`,
   )
-  expect(format(parts({ sevenDay: { percentUsed: 100, resetsAt: '2026-10-03T01:00:00Z' } }, undefined, START, 'en'))).toBe(
+  expect(format(parts({ sevenDay: { percentUsed: 100, resetsAt: '2026-10-03T01:00:00Z' } }, {}, START, 'en'))).toBe(
     'Week: reset',
   )
-  expect(format(parts({ sevenDay: { percentUsed: 12 } }, undefined, START, 'en'))).toBe('Week: 12% used')
-  expect(format(parts({}, undefined, START, 'en'))).toBeUndefined()
+  expect(format(parts({ sevenDay: { percentUsed: 12 } }, {}, START, 'en'))).toBe('Week: 12% used')
+  expect(format(parts({}, {}, START, 'en'))).toBeUndefined()
 })
 
-test('formats both windows and the effort in Japanese', () => {
-  expect(format(parts({ fiveHour, sevenDay }, 'max', START, 'ja'))).toBe(
-    `5h枠 残り2h14m · 63%使用 · ${localClock(RESETS)}リセット | ${week(41)} | effort max`,
+test('formats both windows, the model and the effort in Japanese', () => {
+  expect(format(parts({ fiveHour, sevenDay }, { model: opus, effort: 'max' }, START, 'ja'))).toBe(
+    `5h枠 残り2h14m · 63%使用 · ${localClock(RESETS)}リセット | ${week(41)} | Opus 5.5 max`,
   )
-  expect(format(parts({ fiveHour, sevenDay }, undefined, START + 30 * 60_000, 'ja'))).toBe(
+  expect(format(parts({ fiveHour, sevenDay }, {}, START + 30 * 60_000, 'ja'))).toBe(
     `5h枠 残り1h44m · 63%使用 · ${localClock(RESETS)}リセット | ${week(41)}`,
   )
-  expect(format(parts({ fiveHour }, undefined, Date.parse(RESETS) + 1, 'ja'))).toBe(
+  expect(format(parts({ fiveHour }, {}, Date.parse(RESETS) + 1, 'ja'))).toBe(
     '5h枠 リセット済み (次の応答で更新)',
   )
 })
@@ -60,7 +61,7 @@ test('formats both windows and the effort in Japanese', () => {
 test('marks only the windows at or past 90%', () => {
   const shown = parts(
     { fiveHour: { percentUsed: 91, resetsAt: '2026-10-03T02:45:00Z' }, sevenDay: { percentUsed: 89.4, resetsAt: WEEK_RESETS } },
-    'high',
+    { effort: 'high' },
     START,
     'en',
   )
@@ -70,9 +71,24 @@ test('marks only the windows at or past 90%', () => {
 })
 
 test('marks a window shown at 90%, rounded up from 89.5', () => {
-  const [shown] = parts({ fiveHour: { percentUsed: 89.5, resetsAt: '2026-10-03T02:45:00Z' } }, undefined, START, 'en')
+  const [shown] = parts({ fiveHour: { percentUsed: 89.5, resetsAt: '2026-10-03T02:45:00Z' } }, {}, START, 'en')
   expect(shown?.warn).toBe(true)
   expect(shown?.text.startsWith('⚠ 5h: 45m left · 90% used')).toBe(true)
+})
+
+test('shows the model alone without an effort, the effort alone without a model', () => {
+  expect(format(parts({}, { model: 'claude-haiku-4-5-20251001' }, START, 'en'))).toBe('Haiku 4.5')
+  expect(format(parts({}, { effort: 'low' }, START, 'ja'))).toBe('effort low')
+})
+
+test('modelName: the family and version as people say them', () => {
+  expect(modelName('claude-opus-5-5')).toBe('Opus 5.5')
+  expect(modelName('claude-fable-5-1')).toBe('Fable 5.1')
+  expect(modelName('claude-sonnet-5-5[1m]')).toBe('Sonnet 5.5')
+  expect(modelName('claude-haiku-4-5-20251001')).toBe('Haiku 4.5')
+  expect(modelName('claude-opus-4-20250514')).toBe('Opus 4')
+  expect(modelName('us.anthropic.claude-sonnet-5-5-v1:0')).toBe('Sonnet 5.5')
+  expect(modelName('my-proxy-model')).toBe('my-proxy-model')
 })
 
 test('settingsEffort: the model entry first, then the general one', () => {
@@ -126,7 +142,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
 
     expect(await ui.find({ type: 'Text', text: /^auto mode on/ })).toBeDefined()
     expect((await line())?.text).toBe(
-      `5h: 2h14m left · 63% used · resets ${localClock(RESETS)} | ${weekEn(41)} | Effort: medium`,
+      `5h: 2h14m left · 63% used · resets ${localClock(RESETS)} | ${weekEn(41)} | Opus 5.5 medium`,
     )
     expect((await ui.findAll({ type: 'Text' })).filter(element => element.props.color === 'warning')).toHaveLength(0)
 
@@ -134,10 +150,13 @@ for (const surface of ['terminal', 'desktop'] as const) {
     expect((await line())?.text).toContain('5h: 1h44m left')
 
     await drain($.turn.step({ ...step, effort: 'xhigh' }))
-    expect((await line())?.text).toContain('Effort: xhigh')
+    expect((await line())?.text).toContain('Opus 5.5 xhigh')
 
-    await drain($.turn.step({ ...step, index: 1, effort: 'low', agentId: 'sub-1' }))
-    expect((await line())?.text).toContain('Effort: xhigh')
+    await drain($.turn.step({ ...step, index: 1, model: 'claude-sonnet-5-5', effort: 'xhigh' }))
+    expect((await line())?.text).toContain('Sonnet 5.5 xhigh')
+
+    await drain($.turn.step({ ...step, index: 2, model: 'claude-haiku-4-5', effort: 'low', agentId: 'sub-1' }))
+    expect((await line())?.text).toContain('Sonnet 5.5 xhigh')
 
     await $.session.measure({
       context,
@@ -170,13 +189,16 @@ test('ja: draws the meter in Japanese', { options: { japanese: true } }, async (
   expect((await ui.find({ type: 'Text', text: /^週/ }))?.text).toBe(week(41))
 })
 
-test('shows a new effort as soon as /effort changes the settings', async ($, on) => {
+test('shows a new model and effort as soon as /effort or /model changes the settings', async ($, on) => {
   const clock = mock.clock(on, { now: START })
   let level = 'medium'
+  let current = 'claude-opus-5-5'
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('session.usage', () => ({ value: { startedAt: START, context, rateLimits: [] } }))
-  on('session.model', () => ({ value: 'claude-opus-5-5' }))
-  on('settings.read', () => ({ value: { modelSettings: { 'claude-opus-5-5': { effortLevel: level } } } }))
+  on('session.model', () => ({ value: current }))
+  on('settings.read', () => ({
+    value: { effortLevel: 'high', modelSettings: { 'claude-opus-5-5': { effortLevel: level } } },
+  }))
   on('command.run', () => ({ text: '' }))
   on('turn.step', async function* ($, e) {
     return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn', usage: null }
@@ -187,10 +209,10 @@ test('shows a new effort as soon as /effort changes the settings', async ($, on)
   })
 
   const ui = await $.ui.mount({ plugin: 'usage-meter', surface: 'terminal', component: 'PromptHint', props: HINT })
-  const line = async () => (await ui.find({ type: 'Text', text: /^Effort/ }))?.text
+  const line = async () => (await ui.find({ type: 'Text', text: /^Opus|^Sonnet/ }))?.text
 
   await $.session.start(start)
-  expect(await line()).toBe('Effort: medium')
+  expect(await line()).toBe('Opus 5.5 medium')
 
   level = 'high'
   await $.command.run({
@@ -199,15 +221,25 @@ test('shows a new effort as soon as /effort changes the settings', async ($, on)
     origin: { kind: 'composer' },
     presentation: { isFullscreen: false, columns: 200 },
   })
-  expect(await line()).toBe('Effort: high')
+  expect(await line()).toBe('Opus 5.5 high')
 
   // A request at another level (a --effort flag) wins until the settings change again.
   await drain($.turn.step({ ...step, effort: 'low' }))
   await clock.advance(30_000)
-  expect(await line()).toBe('Effort: low')
+  expect(await line()).toBe('Opus 5.5 low')
 
   // Changed some other way (the /model picker), it shows on the next tick.
   level = 'max'
   await clock.advance(30_000)
-  expect(await line()).toBe('Effort: max')
+  expect(await line()).toBe('Opus 5.5 max')
+
+  // `/model` switches the model; its effort is the settings' general one.
+  current = 'claude-sonnet-5-5'
+  await $.command.run({
+    command: 'model',
+    args: 'sonnet',
+    origin: { kind: 'composer' },
+    presentation: { isFullscreen: false, columns: 200 },
+  })
+  expect(await line()).toBe('Sonnet 5.5 high')
 })

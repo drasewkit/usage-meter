@@ -46,11 +46,14 @@ const TEXT = {
 type Text = (typeof TEXT)[Language]
 
 let windows: Windows = {}
+// The model the main loop's last request named; until the first request, the session's.
+let model: string | undefined
 // The effort the main loop's last request asked for; until the first request,
 // the one the settings name for the session's model.
 let effort: string | undefined
-// The effort the settings named when last read: a change there (`/effort`,
-// `/model`) is the person's and is shown at once.
+// The session's model and the effort the settings named for it when last read:
+// a change there (`/effort`, `/model`) is the person's and is shown at once.
+let settingsModel: string | undefined
 let settingsLevel: string | undefined
 let language: Language = 'en'
 
@@ -63,6 +66,15 @@ type EffortSettings = {
 export const settingsEffort = (settings: EffortSettings, model: string) => {
   const level = settings.modelSettings?.[model]?.effortLevel ?? settings.effortLevel
   return typeof level === 'string' ? level : undefined
+}
+
+// A model id as people say it: `claude-opus-5-5` is `Opus 5.5`, a provider's
+// prefix, a date or a context suffix dropped. An id of another shape is shown as it is.
+export const modelName = (id: string) => {
+  const match = /claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?![\d.])/.exec(id)
+  if (!match) return id
+  const [, family = '', major, minor] = match
+  return `${family.charAt(0).toUpperCase()}${family.slice(1)} ${major}${minor ? `.${minor}` : ''}`
 }
 
 const pick = (limits: SessionRateLimit[]): Windows => ({
@@ -116,9 +128,17 @@ const sevenDayPart = (window: Window, now: number, text: Text): Part => {
   return { text: `${mark}${label} ${used} · ${text.resetsAt(`${text.day(at)} ${clockOf(at)}`)}`, warn }
 }
 
+// The model and the effort, as one part: `Opus 5.5 medium`. A model without
+// effort is shown by its name alone; an effort without a model keeps its label.
+const effortPart = (id: string | undefined, level: string | undefined, text: Text): Part | undefined => {
+  if (id === undefined) return level === undefined ? undefined : { text: text.effort(level), warn: false }
+  const name = modelName(id)
+  return { text: level === undefined ? name : `${name} ${level}`, warn: false }
+}
+
 export const parts = (
   { fiveHour, sevenDay }: Windows,
-  level: string | undefined,
+  running: { model?: string; effort?: string },
   now: number,
   lang: Language,
 ): Part[] => {
@@ -126,7 +146,7 @@ export const parts = (
   return [
     fiveHour && fiveHourPart(fiveHour, now, text),
     sevenDay && sevenDayPart(sevenDay, now, text),
-    level === undefined ? undefined : { text: text.effort(level), warn: false },
+    effortPart(running.model, running.effort, text),
   ].filter(part => part !== undefined)
 }
 
@@ -134,15 +154,15 @@ export const parts = (
 export const format = (shown: Part[]) =>
   shown.length > 0 ? shown.map(part => part.text).join(' | ') : undefined
 
-// Reads the settings' effort for the session's model; when it changed, shows it.
+// Reads the session's model and the settings' effort for it; when either changed, shows them.
 const syncSettings = async ($: EngineInterface) => {
-  const level = settingsEffort(
-    (await $.settings.read()) as EffortSettings,
-    await $.session.model(),
-  )
-  if (level === settingsLevel) return
+  const id = await $.session.model()
+  const level = settingsEffort((await $.settings.read()) as EffortSettings, id)
+  if (id === settingsModel && level === settingsLevel) return
 
+  settingsModel = id
   settingsLevel = level
+  model = id
   effort = level
   redraw($)
 }
@@ -176,7 +196,7 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // `/effort` and `/model` write the settings as they finish: show the new level now,
+  // `/effort` and `/model` write the settings as they finish: show the new model and level now,
   // not at the next request.
   on('command.run', async ($, e, next) => {
     const result = await next(e)
@@ -187,7 +207,8 @@ export const register: Register = (on, options) => {
 
   on('turn.step', async function* ($, e, next) {
     const level = e.effort === undefined ? undefined : String(e.effort)
-    if (e.agentId === undefined && level !== effort) {
+    if (e.agentId === undefined && (level !== effort || e.model !== model)) {
+      model = e.model
       effort = level
       redraw($)
     }
@@ -198,7 +219,7 @@ export const register: Register = (on, options) => {
   // The meter line goes under the engine's hint line (`auto mode on`, `esc to interrupt`).
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
     const hint = await next(e)
-    const shown = parts(windows, effort, await $.clock.now(), language)
+    const shown = parts(windows, { model, effort }, await $.clock.now(), language)
     if (shown.length === 0) return hint
 
     const { Box, Text } = $.ui.resolve(e)
