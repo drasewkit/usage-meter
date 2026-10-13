@@ -1,6 +1,7 @@
 import type { EngineInterface, Register, SessionRateLimit } from 'claude-code'
 
-// How often the countdown is redrawn between measurements.
+// How often the usage figures are read again and the countdown redrawn between
+// measurements: a figure the engine updated without a measurement still shows.
 const TICK_MS = 30_000
 
 // A window at or past this share is drawn as a warning.
@@ -180,6 +181,7 @@ export const register: Register = (on, options) => {
     await syncSettings($)
     redraw($)
     $.clock.every(TICK_MS, async () => {
+      windows = pick((await $.session.usage()).rateLimits)
       await syncSettings($)
       redraw($)
     })

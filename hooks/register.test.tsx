@@ -243,3 +243,28 @@ test('shows a new model and effort as soon as /effort or /model changes the sett
   })
   expect(await line()).toBe('Sonnet 5.5 high')
 })
+
+test('picks up figures the engine updated without a measurement on the next tick', async ($, on) => {
+  const clock = mock.clock(on, { now: START })
+  let percentUsed = 63.4
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  on('session.usage', () => ({
+    value: { startedAt: START, context, rateLimits: [{ kind: 'five_hour', percentUsed, resetsAt: RESETS }] },
+  }))
+  on('session.model', () => ({ value: 'claude-opus-5-5' }))
+  on('settings.read', () => ({ value: {} }))
+  on('ui.render', { component: 'PromptHint' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>{e.props.hint}</Text>
+  })
+
+  const ui = await $.ui.mount({ plugin: 'usage-meter', surface: 'terminal', component: 'PromptHint', props: HINT })
+  const line = async () => (await ui.find({ type: 'Text', text: /^5h: / }))?.text
+
+  await $.session.start(start)
+  expect(await line()).toContain('63% used')
+
+  percentUsed = 0
+  await clock.advance(30_000)
+  expect(await line()).toContain('0% used')
+})

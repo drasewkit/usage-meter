@@ -43,7 +43,7 @@ Turn it on from `/config` (the **日本語で表示 (Japanese)** row). The Japan
 
 | Hook | Why |
 | --- | --- |
-| `session.start` | Reads the usage windows, the model and your settings' effort once the session starts, then redraws every 30 seconds. |
+| `session.start` | Reads the usage windows, the model and your settings' effort once the session starts, then reads them again and redraws every 30 seconds. Reading the windows sends no request: it takes the figures Claude Code already has. |
 | `session.measure` | Picks up new usage figures as Claude Code receives them. |
 | `turn.step` | Reads the model and effort of each main-conversation request. It passes every request on unchanged. |
 | `command.run` | After `/effort` or `/model` finishes, re-reads the model and settings so a new model or effort shows at once. It passes every command on unchanged and changes nothing in its output. |
